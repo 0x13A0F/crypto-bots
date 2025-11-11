@@ -3,8 +3,10 @@ import discord
 import requests
 from discord.ext import tasks
 from discord import app_commands
+from dotenv import load_dotenv
 
 # Load .env variables
+load_dotenv()
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", 900))  # 15min default
@@ -52,14 +54,14 @@ async def update_prices():
     prices = get_prices()
 
     msg = (
-        f"🪙 **Cours des principales cryptos (Spot - conforme à la Sharia)**\n\n"
-        f"💰 **BTC**: ${prices['BTC_USD']:,} / {prices['BTC_EUR']:,}€ "
+        f"🪙 **Cours des principales cryptos (Spot - conforme à la Sharia)**\n"
+        f"\n💰 **BTC**: ${prices['BTC_USD']:,} / {prices['BTC_EUR']:,}€ "
         f"({prices['BTC_CHANGE']:.2f}% sur 24h)\n\n"
         f"💎 **ETH**: ${prices['ETH_USD']:,} / {prices['ETH_EUR']:,}€ "
         f"({prices['ETH_CHANGE']:.2f}% sur 24h)\n\n"
         f"🔥 **SOL**: ${prices['SOL_USD']:,} / {prices['SOL_EUR']:,}€ "
         f"({prices['SOL_CHANGE']:.2f}% sur 24h)\n\n"
-        f"_Mise à jour automatique toutes les {UPDATE_INTERVAL // 60} minutes._"
+        f"_Mise à jour automatique toutes les {UPDATE_INTERVAL//60} minutes._"
     )
 
     # Clear previous bot messages for a clean look
@@ -71,7 +73,8 @@ async def update_prices():
 
 
 # ✅ Slash Command: /price
-@tree.command(name="price", description="Get the current price of any cryptocurrency")
+@tree.command(name="price",
+              description="Get the current price of any cryptocurrency")
 async def price(interaction: discord.Interaction, coin: str):
     await interaction.response.defer(ephemeral=True)
     coin = coin.lower()
@@ -87,16 +90,23 @@ async def price(interaction: discord.Interaction, coin: str):
         await interaction.followup.send(f"❌ Coin not found: `{coin}`")
         return
 
-    data = r.json()[coin]
-    usd = data["usd"]
-    eur = data["eur"]
-    change = data.get("usd_24h_change", 0.0)
+    try:
+        data = r.json()[coin]
+        usd = data["usd"]
+        eur = data["eur"]
+        change = data.get("usd_24h_change", 0.0)
+        change_rounded = f"{change:.2f}"
+    except Exception as e:
+        print("Exception occured", str(e))
+        await interaction.followup.send(f"❌ Coin not found: `{coin}`")
+        return
 
     await interaction.followup.send(
         f"📈 **{coin.upper()}**\n"
         f"💰 ${usd:,} / {eur:,}€\n"
-        f"📊 Changement 24h : {change:.2f}%\n\n"
-        f"💬 *Spot market only — conforme à la Sharia (pas de leverage ni futures).*"
+        f"📊 Changement 24h : {change_rounded}%\n\n"
+        f"💬 *Spot market only — conforme à la"
+        " Sharia (pas de leverage ni futures).*"
     )
 
 
