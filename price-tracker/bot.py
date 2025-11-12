@@ -105,6 +105,7 @@ async def ruling(interaction: discord.Interaction, coin: str):
     # ✅ Step 1: Check cache first
     cached = r.get(coin_key)
     if cached:
+        print(f"Getting {coin_key} from cache")
         result = json.loads(cached)
         links = "\n".join(
             [f"[{r['name']} - {r['symbol']}]({r['url']})" for r in result])
@@ -121,6 +122,7 @@ async def ruling(interaction: discord.Interaction, coin: str):
         if len(lines) < 2:
             continue
 
+        print(f"Getting {coin_key} from discord")
         coin_name = clean_text(lines[0]).lower().strip()
         coin_symbol = clean_text(lines[1]).lower().strip()
 
