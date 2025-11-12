@@ -116,7 +116,7 @@ async def ruling(interaction: discord.Interaction, coin: str):
         return
 
     found = []
-    async for msg in channel.history(limit=1000):
+    async for msg in channel.history(limit=LIMIT_HISTORY):
         lines = msg.content.splitlines()
         if len(lines) < 2:
             continue
