@@ -4,6 +4,8 @@ import requests
 from discord.ext import tasks
 from discord import app_commands
 from dotenv import load_dotenv
+import re
+
 
 # Load .env variables
 load_dotenv()
@@ -19,6 +21,18 @@ tree = app_commands.CommandTree(client)
 
 API_URL = "https://api.coingecko.com/api/v3/simple/price"
 COINS = ["bitcoin", "ethereum", "solana"]
+
+
+def clean_text(text: str) -> str:
+    text = re.sub(r"<a?:\w+:\d+>", "", text)  # Discord custom emojis
+    text = re.sub(r"[\U0001F600-\U0001F64F"
+                  r"\U0001F300-\U0001F5FF"
+                  r"\U0001F680-\U0001F6FF"
+                  r"\U0001F1E0-\U0001F1FF"
+                  r"\u2600-\u26FF\u2700-\u27BF]+", "", text, flags=re.UNICODE)
+    text = text.replace("**", "")  # remove bold markdown
+    text = text.strip()
+    return text
 
 
 def get_prices():
@@ -89,7 +103,14 @@ async def ruling(interaction: discord.Interaction, coin: str):
     found_messages = []
 
     async for message in channel.history(limit=1000):  # adjust limit if needed
-        if coin_lower in message.content.lower():
+        lines = message.content.splitlines()
+        if len(lines) < 2:
+            continue
+
+        coin_name = clean_text(lines[0]).lower()
+        coin_symbol = clean_text(lines[1]).lower()
+
+        if coin_lower == coin_name or coin_lower == coin_symbol:
             found_messages.append(message)
 
     if not found_messages:
