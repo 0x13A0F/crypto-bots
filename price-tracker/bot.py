@@ -100,10 +100,10 @@ async def update_prices():
 async def ruling(interaction: discord.Interaction, coin: str):
     await interaction.response.defer(thinking=True, ephemeral=True)
     channel = client.get_channel(HALAL_CRYPTOS_CHANNEL_ID)
-    query_key = coin.lower().strip()
+    coin_key = coin.lower().strip()
 
     # ✅ Step 1: Check cache first
-    cached = r.get(query_key)
+    cached = r.get(coin_key)
     if cached:
         result = json.loads(cached)
         links = "\n".join(
@@ -115,32 +115,32 @@ async def ruling(interaction: discord.Interaction, coin: str):
         await interaction.followup.send("❌ Channel not found.")
         return
 
-    coin_lower = coin.lower()
-    found_messages = []
-
-    # adjust limit if needed
-    async for message in channel.history(limit=LIMIT_HISTORY):
-        lines = message.content.splitlines()
+    found = []
+    async for msg in channel.history(limit=1000):
+        lines = msg.content.splitlines()
         if len(lines) < 2:
             continue
 
         coin_name = clean_text(lines[0]).lower()
         coin_symbol = clean_text(lines[1]).lower()
 
-        if coin_lower == coin_name or coin_lower == coin_symbol:
-            found_messages.append(message)
+        if coin_key == coin_name or coin_key == coin_symbol:
+            found.append({
+                "name": clean_text(lines[0]),
+                "symbol": clean_text(lines[1]),
+                "url": msg.jump_url
+            })
 
-    if not found_messages:
-        await interaction.followup.send(f"🔍 No coin found: **{coin}**.")
+    if not found:
+        await interaction.followup.send(f"🔍 Coin not found: **{coin}**.")
         return
 
-    response = "\n".join(
-        [f"[{msg.content[:50]}...]"
-         f"({msg.jump_url})" for msg in found_messages[:5]]
-    )
+    # ✅ Step 2: Cache the results for future searches
+    r.set(coin_key, json.dumps(found), ex=30 * 86400)  # expire in 30 day
 
-    await interaction.followup.send(f"✅ Found {len(found_messages)}"
-                                    f" result(s):\n{response}")
+    links = "\n".join(
+        [f"[{r['name']} - {r['symbol']}]({r['url']})" for r in found])
+    await interaction.followup.send(f"✅ result(s):\n{links}")
 
 
 # ✅ Slash Command: /price
