@@ -13,6 +13,7 @@ TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 HALAL_CRYPTOS_CHANNEL_ID = int(os.getenv("HALAL_CRYPTOS_CHANNEL_ID"))
 UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", 900))  # 15min default
+LIMIT_HISTORY = int(os.getenv("LIMIT_HISTORY", 1000))
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -102,7 +103,8 @@ async def ruling(interaction: discord.Interaction, coin: str):
     coin_lower = coin.lower()
     found_messages = []
 
-    async for message in channel.history(limit=1000):  # adjust limit if needed
+    # adjust limit if needed
+    async for message in channel.history(limit=LIMIT_HISTORY):
         lines = message.content.splitlines()
         if len(lines) < 2:
             continue
