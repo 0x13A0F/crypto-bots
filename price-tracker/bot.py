@@ -121,8 +121,8 @@ async def ruling(interaction: discord.Interaction, coin: str):
         if len(lines) < 2:
             continue
 
-        coin_name = clean_text(lines[0]).lower()
-        coin_symbol = clean_text(lines[1]).lower()
+        coin_name = clean_text(lines[0]).lower().strip()
+        coin_symbol = clean_text(lines[1]).lower().strip()
 
         if coin_key == coin_name or coin_key == coin_symbol:
             found.append({
@@ -136,7 +136,8 @@ async def ruling(interaction: discord.Interaction, coin: str):
         return
 
     # ✅ Step 2: Cache the results for future searches
-    r.set(coin_key, json.dumps(found), ex=30 * 86400)  # expire in 30 day
+    r.set(coin_name, json.dumps(found), ex=30 * 86400)  # expire in 30 day
+    r.set(coin_symbol, json.dumps(found), ex=30 * 86400)  # expire in 30 day
 
     links = "\n".join(
         [f"[{r['name']} - {r['symbol']}]({r['url']})" for r in found])
