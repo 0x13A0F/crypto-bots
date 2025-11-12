@@ -1,10 +1,12 @@
 import os
 import discord
 import requests
+import re
+import redis
+import json
 from discord.ext import tasks
 from discord import app_commands
 from dotenv import load_dotenv
-import re
 
 
 # Load .env variables
@@ -14,11 +16,14 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 HALAL_CRYPTOS_CHANNEL_ID = int(os.getenv("HALAL_CRYPTOS_CHANNEL_ID"))
 UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", 900))  # 15min default
 LIMIT_HISTORY = int(os.getenv("LIMIT_HISTORY", 1000))
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
+r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
 API_URL = "https://api.coingecko.com/api/v3/simple/price"
 COINS = ["bitcoin", "ethereum", "solana"]
@@ -95,6 +100,16 @@ async def update_prices():
 async def ruling(interaction: discord.Interaction, coin: str):
     await interaction.response.defer(thinking=True, ephemeral=True)
     channel = client.get_channel(HALAL_CRYPTOS_CHANNEL_ID)
+    query_key = coin.lower().strip()
+
+    # ✅ Step 1: Check cache first
+    cached = r.get(query_key)
+    if cached:
+        result = json.loads(cached)
+        links = "\n".join(
+            [f"[{r['name']} - {r['symbol']}]({r['url']})" for r in result])
+        await interaction.followup.send(f"⚡ result for **{coin}**:\n{links}")
+        return
 
     if not channel:
         await interaction.followup.send("❌ Channel not found.")
