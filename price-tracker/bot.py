@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
+HALAL_CRYPTOS_CHANNEL_ID = int(os.getenv("HALAL_CRYPTOS_CHANNEL_ID"))
 UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", 900))  # 15min default
 
 intents = discord.Intents.default()
@@ -70,6 +71,38 @@ async def update_prices():
             await message.delete()
 
     await channel.send(msg)
+
+# ✅ Slash Command: /ruling
+
+
+@tree.command(name="ruling",
+              description="Check the ruling of a specific coin")
+async def ruling(interaction: discord.Interaction, coin: str):
+    await interaction.response.defer(thinking=True, ephemeral=True)
+    channel = client.get_channel(HALAL_CRYPTOS_CHANNEL_ID)
+
+    if not channel:
+        await interaction.followup.send("❌ Channel not found.")
+        return
+
+    coin_lower = coin.lower()
+    found_messages = []
+
+    async for message in channel.history(limit=1000):  # adjust limit if needed
+        if coin_lower in message.content.lower():
+            found_messages.append(message)
+
+    if not found_messages:
+        await interaction.followup.send(f"🔍 No coin found: **{coin}**.")
+        return
+
+    response = "\n".join(
+        [f"[{msg.content[:50]}...]"
+         f"({msg.jump_url})" for msg in found_messages[:5]]
+    )
+
+    await interaction.followup.send(f"✅ Found {len(found_messages)}"
+                                    f" result(s):\n{response}")
 
 
 # ✅ Slash Command: /price
